@@ -1,8 +1,8 @@
 # CSC 415 - Project 3 - My Shell
 
-## Student Name: Name here
+## Student Name: Cory Lewis
 
-## Student ID: ID Here
+## Student ID: 917359162
 
 ## Build Instructions
 
