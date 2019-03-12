@@ -22,24 +22,17 @@
 #define PROMPT "myShell >> "
 #define PROMPTSIZE sizeof(PROMPT)
 
-
-/*
-	Citing Sources:
-	//Used this for learning strtok -> https://www.tutorialspoint.com/c_standard_library/c_function_strtok.htm
-	
-*/
-//Function Prototypes
+//Prototypes
 void tokenizeInput();
 
 //Globals
-const char * tokenizedArray[BUFFERSIZE];
-
+char * tokenizedArray[BUFFERSIZE];
 
 int main(int* argc, char** argv){
    printf(PROMPT);
    tokenizeInput();
 
-   execvp(tokenizedArray[0],tokenizedArray);
+   //execvp(tokenizedArray[0],tokenizedArray);
     
 return 0;
 }
@@ -49,16 +42,19 @@ void tokenizeInput(){
    char inputString[BUFFERSIZE];
    const char delimiter[4] = " ";
    char *token;
-   //User Input
+
+   //Input
    scanf("%[^\n]", inputString);
-   //Initial Token
+   
+   //Initialize Token
    token = strtok(inputString, delimiter);
-   //Populate token array
+
+   //Tokenize Array
    int counter = 0;
    while(token != 0){
       tokenizedArray[counter] = token;
       counter++;
       token = strtok(0, delimiter);
    }
-   tokenizedArray[counter+1] = NULL;
+   tokenizedArray[counter] = NULL;
 }
