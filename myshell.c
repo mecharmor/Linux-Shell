@@ -28,28 +28,37 @@
 	//Used this for learning strtok -> https://www.tutorialspoint.com/c_standard_library/c_function_strtok.htm
 	
 */
+//Function Prototypes
+void tokenizeInput();
 
-int 
-main(int* argc, char** argv)
-{
+//Globals
+const char * tokenizedArray[BUFFERSIZE];
 
+
+int main(int* argc, char** argv){
+   printf(PROMPT);
+   tokenizeInput();
+
+   execvp(tokenizedArray[0],tokenizedArray);
+    
+return 0;
+}
+
+void tokenizeInput(){
+   //Declare
    char inputString[BUFFERSIZE];
    const char delimiter[4] = " ";
    char *token;
-
-   /* Prompt, scan until line is read */
-   printf(PROMPT);
+   //User Input
    scanf("%[^\n]", inputString);
-
-   /* first token pointer */
+   //Initial Token
    token = strtok(inputString, delimiter);
-   
-   /* loop through tokens */
-   while( token != 0 ) {
-      printf( " %s\n", token);
-    
+   //Populate token array
+   int counter = 0;
+   while(token != 0){
+      tokenizedArray[counter] = token;
+      counter++;
       token = strtok(0, delimiter);
    }
-    
-return 0;
+   tokenizedArray[counter+1] = NULL;
 }
