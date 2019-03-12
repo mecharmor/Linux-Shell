@@ -27,22 +27,22 @@ void tokenizeInput();
 
 //Globals
 char * tokenizedArray[BUFFERSIZE];
+char *token;
+char inputString[BUFFERSIZE];
 
 int main(int* argc, char** argv){
    printf(PROMPT);
    tokenizeInput();
 
-   //execvp(tokenizedArray[0],tokenizedArray);
+   execvp(tokenizedArray[0],tokenizedArray);
     
 return 0;
 }
 
 void tokenizeInput(){
    //Declare
-   char inputString[BUFFERSIZE];
    const char delimiter[4] = " ";
-   char *token;
-
+   
    //Input
    scanf("%[^\n]", inputString);
    
