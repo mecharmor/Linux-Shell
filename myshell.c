@@ -1,7 +1,7 @@
 /****************************************************************
  * Name        :  Cory Lewis                                    *
  * Class       :  CSC 415                                       *
- * Date        :  2/27/19                                       *
+ * Date        :  3/14/19                                       *
  * Description :  Writting a simple bash shell program          *
  *                that will execute simple commands. The main   *
  *                goal of the assignment is working with        *
@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 #include <fcntl.h>
 /* CANNOT BE CHANGED */
 #define BUFFERSIZE 256
@@ -24,23 +25,24 @@
 
 //Helper Structs
 struct Redirection{
-   int isRedirection;
+   bool isRedirection; 
    int fd;
+   bool isOutput;
+   bool appendOutput;
+   char * fileName;
 };
 
 //Prototypes
-void tokenizeInput(int* _isRedirection, int* _fd);
+void tokenizeInput(struct Redirection * redir);
 int isRedirection(char x[]);
 int openFileWrite(char fileName[]);
 int openFileWriteAppend(char fileName[]);
 int openFileRead(char fileName[]);
-
-
+void resetGlobals();
 
 //Globals
 char * myargv[BUFFERSIZE];
 char *token;
-char inputString[BUFFERSIZE];
 int myargc;
 
 /*
@@ -50,54 +52,140 @@ Document: struct Redirection is used to keep track if a file is being read from 
 int main(int* argc, char** argv){
    //Initialize
    struct Redirection redirection;
-   redirection.isRedirection = 0;
+   redirection.isRedirection = false;
    redirection.fd = -1;
+   redirection.isOutput = false;
+   redirection.appendOutput = false;
+   myargc = 0;
 
-   printf(PROMPT);
-   tokenizeInput(&redirection.isRedirection, &redirection.fd);
- 
+   while(1){
 
-   execvp(myargv[0],myargv);
+      printf(PROMPT);
+      //Get Input and tokenize
+      tokenizeInput(&redirection);
 
-   //Close redirection file
-   if(redirection.isRedirection){
-      close(redirection.fd);
-      redirection.isRedirection = 0;
-      redirection.fd = -1;
+      //Fork
+      pid_t pid;
+      pid = fork();
+      
+      if(pid > 0){
+         //parent
+         wait(0);
+      }else if(pid == 0){
+         //child
+         if(redirection.isRedirection){
+            if(redirection.isOutput){
+               if(redirection.appendOutput){
+                  // >> here
+               }else{
+                  // > here
+               }
+            }else{
+               // < here
+            }
+         }
+
+
+         // execvp(myargv[0],myargv);
+         // perror("exec failed");
+      }else{
+         perror("forking failed");
+      }
+
+         resetGlobals();
+
+         //Close redirection file
+         if(redirection.isRedirection){
+            redirection.isRedirection = false;
+            redirection.isOutput = false;
+            redirection.appendOutput = false;
+            redirection.fd = -1;
+         }
    }
-    
 return 0;
 }
-void tokenizeInput(int* _isRedirection, int * _fd){
+void resetGlobals(){
+   memset(myargv, 0, BUFFERSIZE);
+   token = NULL;
    myargc = 0;
-   //Declare
+}
+// void tokenizeInput(struct Redirection * redir){
+//    //,bool* _isRedirection, int * _fd
+//    char inputString[BUFFERSIZE];
+//    myargc = 0;
+//    //Declare
+//    const char delimiter[4] = " ";
+   
+//    //Input
+//    scanf("%[^\n]", inputString);
+//    // flushes the standard input, Source: https://www.geeksforgeeks.org/clearing-the-input-buffer-in-cc/
+//    // (clears the input buffer) 
+//    while ((getchar()) != '\n'); 
+   
+//    //Initialize Token
+//    token = strtok(inputString, delimiter);
+
+//    //Tokenize Array
+//    //int counter = 0;
+//    while(token != 0){
+//       myargv[myargc] = token;
+//       if(isRedirection(myargv[myargc])){
+//          redir->isRedirection = true;
+//          if(!strcmp(myargv[myargc],">")){
+//          //Write to file
+//          (redir->fd) = openFileWrite(strtok(0, delimiter));
+//          //dup2(*_fd, 1);
+//          //close(*_fd);
+//          }else if(!strcmp(myargv[myargc],">>")){
+//          //Append to file
+//          (redir->fd) = openFileWriteAppend(strtok(0, delimiter));
+//          //dup2(*_fd, 1);
+//          //close(*_fd);
+//          }else if(!strcmp(myargv[myargc],"<")){
+//          //write into file
+//          (redir->fd) = openFileRead(strtok(0, delimiter));
+//          //dup2(*_fd, 0);
+//          //close(*_fd);
+//          }
+//       }else{
+//          myargc++;
+//       }
+//       token = strtok(0, delimiter);
+//    }
+//    myargv[myargc] = NULL;
+// }
+void tokenizeInput(struct Redirection * redir){
+   char inputString[BUFFERSIZE];
    const char delimiter[4] = " ";
+   char * returnValue[BUFFERSIZE];
    
    //Input
    scanf("%[^\n]", inputString);
+   // (Clear Buffer), flushes the standard input, Source: https://www.geeksforgeeks.org/clearing-the-input-buffer-in-cc/
+   while ((getchar()) != '\n'); 
    
-   //Initialize Token
+   //Get Token
    token = strtok(inputString, delimiter);
 
    //Tokenize Array
-   //int counter = 0;
    while(token != 0){
       myargv[myargc] = token;
       if(isRedirection(myargv[myargc])){
-         *_isRedirection = 1;
+         redir->isRedirection = true;
          if(!strcmp(myargv[myargc],">")){
          //Write to file
-         *_fd = openFileWrite(strtok(0, delimiter));
-         dup2(*_fd, fileno(stdout));
+         redir->isOutput = true;
+         redir->appendOutput = false;
          }else if(!strcmp(myargv[myargc],">>")){
          //Append to file
-         *_fd = openFileWriteAppend(strtok(0, delimiter));
-         dup2(*_fd, fileno(stdout));
+         redir->isOutput = true;
+         redir->appendOutput = true;
          }else if(!strcmp(myargv[myargc],"<")){
          //write into file
-         *_fd = openFileRead(strtok(0, delimiter));
-         dup2(*_fd, fileno(stdin));
+         redir->isOutput = false;
          }
+         //Deep Copy, File Name
+         redir->fileName = strdup(strtok(0, delimiter));
       }else{
          myargc++;
       }
