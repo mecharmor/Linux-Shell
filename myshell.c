@@ -36,15 +36,13 @@ struct Redirection{
    bool appendOutput;
    char * fileName;
 };
-
 struct CD{
    bool isCD;
    char * path;
 };
-
 //Prototypes
 void tokenizeInput(struct Redirection * redir);
-int isRedirection();
+int isRedirection(char * token);
 int openFileWrite(char fileName[]);
 int openFileWriteAppend(char fileName[]);
 int openFileRead(char fileName[]);
@@ -58,6 +56,11 @@ bool waitForChildProcess;
 struct CD cd;
 bool isPWD;
 
+//Piping Globals
+char * myargv2[BUFFERSIZE];
+int myargc2;
+bool isPiping;
+
 int main(int* argc, char** argv){
    //Initialize
    struct Redirection redirection;
@@ -70,6 +73,8 @@ int main(int* argc, char** argv){
    cd.isCD = false;
    cd.path = "";
    isPWD = false;
+   myargc2 = 0;
+   isPiping = false;
 
    while(1){
 
@@ -112,8 +117,36 @@ int main(int* argc, char** argv){
                close(redirection.fd);
             }
          }
-         execvp(myargv[0],myargv);
-         perror("exec failed");
+         //Time for piping
+         if(isPiping){
+            int pipe_fd[2]; // [0] read end, [1] write end
+            pipe(pipe_fd);
+
+            int id = fork();
+            //Child, right side
+            if(id == 0){
+               close(0);
+               dup(pipe_fd[0]);
+               close(pipe_fd[0]);
+               close(pipe_fd[1]);
+
+               execvp(myargv2[0],myargv2);
+               perror("pipe right side failed\n");
+            }
+            //Parent, left side
+            if(id > 0){
+               close(1);
+               dup(pipe_fd[1]);
+               close(pipe_fd[0]);
+               close(pipe_fd[1]);
+               execvp(myargv[0],myargv);
+               perror("pipe left side failed\n");
+            }
+         }else{
+            execvp(myargv[0],myargv);
+            perror("exec failed");
+         }
+
       }else{
          perror("forking failed");
       }
@@ -136,12 +169,16 @@ void resetGlobals(){
    cd.isCD = false;
    cd.path = "";
    isPWD = false;
+
+   //Reset Piping values
+   memset(myargv2, 0, BUFFERSIZE);
+   myargc2 = 0;
+   isPiping = false;
 }
 void tokenizeInput(struct Redirection * redir){
    char inputString[BUFFERSIZE];
    const char delimiter[4] = " ";
    char * returnValue[BUFFERSIZE];
-   
    //Input
    scanf("%[^\n]", inputString);
    //Clear Buffer
@@ -151,40 +188,50 @@ void tokenizeInput(struct Redirection * redir){
    token = strtok(inputString, delimiter);
 
    //Tokenize Array
-   while(token != 0){
-      myargv[myargc] = strdup(token);
-      if(isRedirection()){
+   while(token != NULL){
+      if(isRedirection(token)){
          redir->isRedirection = true;
-         if(!strcmp(myargv[myargc],">")){
+         if(!strcmp(token,">")){
          //Write to file
          redir->isOutput = true;
          redir->appendOutput = false;
-         }else if(!strcmp(myargv[myargc],">>")){
+         }else if(!strcmp(token,">>")){
          //Append to file
          redir->isOutput = true;
          redir->appendOutput = true;
-         }else if(!strcmp(myargv[myargc],"<")){
+         }else if(!strcmp(token,"<")){
          //write into file
          redir->isOutput = false;
          }
          //Deep Copy, File Name
          redir->fileName = strdup(strtok(0, delimiter));
-      }else if(!strcmp(myargv[myargc],"&")){
+      }else if(!strcmp(token,"&")){
          waitForChildProcess = false;
-      }else if(!strcmp(myargv[myargc],"cd")){
+      }else if(!strcmp(token,"cd")){
          cd.isCD = true;
          cd.path = strdup(strtok(0, delimiter));
-      }else if(!strcmp(myargv[myargc],"pwd")){
+      }else if(!strcmp(token,"pwd")){
          isPWD = true;
+      }else if(!strcmp(token,"|")){
+         isPiping = true;
       }else{
-         myargc++;
+         if(isPiping){
+            myargv2[myargc2] = strdup(token);
+            myargc2++; 
+         }else{
+            myargv[myargc] = strdup(token);
+            myargc++;
+         }
       }
       token = strtok(0, delimiter);
    }
    myargv[myargc] = NULL;
+   if(isPiping){
+      myargv2[myargc2] = NULL;
+   }
 }
-int isRedirection(){
-   return (!strcmp(myargv[myargc],">") || !strcmp(myargv[myargc],">>") || !strcmp(myargv[myargc],"<"));
+int isRedirection(char * token){
+   return (!strcmp(token,">") || !strcmp(token,">>") || !strcmp(token,"<"));
 }
 int openFileWrite(char fileName[]){
    int fd;

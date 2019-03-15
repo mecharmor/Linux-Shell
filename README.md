@@ -6,6 +6,10 @@
 
 ## Build Instructions
 
+### in the terminal type `make` to build project
+
 ## Run Instructions
+
+### in the terminal type `./myshell` to run the shell
 
 ## List Extra Credit comepleted (if not attempted leave blank)
