@@ -150,7 +150,7 @@ void tokenizeInput(struct Redirection * redir){
 
    //Tokenize Array
    while(token != 0){
-      myargv[myargc] = token;
+      myargv[myargc] = strdup(token);
       if(isRedirection()){
          redir->isRedirection = true;
          if(!strcmp(myargv[myargc],">")){
