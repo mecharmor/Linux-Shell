@@ -39,7 +39,7 @@ struct Redirection{
 
 //Prototypes
 void tokenizeInput(struct Redirection * redir);
-int isRedirection(char x[]);
+int isRedirection();
 int openFileWrite(char fileName[]);
 int openFileWriteAppend(char fileName[]);
 int openFileRead(char fileName[]);
@@ -49,6 +49,7 @@ void resetGlobals();
 char * myargv[BUFFERSIZE];
 char *token;
 int myargc;
+bool waitForChildProcess;
 
 int main(int* argc, char** argv){
    //Initialize
@@ -58,6 +59,7 @@ int main(int* argc, char** argv){
    redirection.isOutput = false;
    redirection.appendOutput = false;
    myargc = 0;
+   waitForChildProcess = true;
 
    while(1){
 
@@ -71,7 +73,10 @@ int main(int* argc, char** argv){
       
       if(pid > 0){
          //parent
-         wait(0);
+         if(waitForChildProcess){
+            printf("parent waited\n");
+            waitpid(pid, 0, 0);
+         }
       }else if(pid == 0){
          //child
          if(redirection.isRedirection){
@@ -112,6 +117,7 @@ void resetGlobals(){
    memset(myargv, 0, BUFFERSIZE);
    token = NULL;
    myargc = 0;
+   waitForChildProcess = true;
 }
 void tokenizeInput(struct Redirection * redir){
    char inputString[BUFFERSIZE];
@@ -129,7 +135,7 @@ void tokenizeInput(struct Redirection * redir){
    //Tokenize Array
    while(token != 0){
       myargv[myargc] = token;
-      if(isRedirection(myargv[myargc])){
+      if(isRedirection()){
          redir->isRedirection = true;
          if(!strcmp(myargv[myargc],">")){
          //Write to file
@@ -145,6 +151,8 @@ void tokenizeInput(struct Redirection * redir){
          }
          //Deep Copy, File Name
          redir->fileName = strdup(strtok(0, delimiter));
+      }else if(!strcmp(myargv[myargc],"&")){
+         waitForChildProcess = false;
       }else{
          myargc++;
       }
@@ -152,7 +160,7 @@ void tokenizeInput(struct Redirection * redir){
    }
    myargv[myargc] = NULL;
 }
-int isRedirection(char x[]){
+int isRedirection(){
    return (!strcmp(myargv[myargc],">") || !strcmp(myargv[myargc],">>") || !strcmp(myargv[myargc],"<"));
 }
 int openFileWrite(char fileName[]){
