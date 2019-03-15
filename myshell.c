@@ -83,7 +83,9 @@ int main(int* argc, char** argv){
       if(pid > 0){//parent
 
          if(cd.isCD){
-            printf("cd detected");
+            if(chdir(cd.path) < 0){
+               printf("Could not find directory: %s\n", cd.path);
+            }
          }else if(isPWD){
             printf("%s\n", getcwd(NULL, BUFFERSIZE));
          }
