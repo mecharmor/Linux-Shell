@@ -37,6 +37,11 @@ struct Redirection{
    char * fileName;
 };
 
+struct CD{
+   bool isCD;
+   char * path;
+};
+
 //Prototypes
 void tokenizeInput(struct Redirection * redir);
 int isRedirection();
@@ -50,6 +55,8 @@ char * myargv[BUFFERSIZE];
 char *token;
 int myargc;
 bool waitForChildProcess;
+struct CD cd;
+bool isPWD;
 
 int main(int* argc, char** argv){
    //Initialize
@@ -60,6 +67,9 @@ int main(int* argc, char** argv){
    redirection.appendOutput = false;
    myargc = 0;
    waitForChildProcess = true;
+   cd.isCD = false;
+   cd.path = "";
+   isPWD = false;
 
    while(1){
 
@@ -67,18 +77,21 @@ int main(int* argc, char** argv){
       //Get Input and tokenize
       tokenizeInput(&redirection);
 
-      //Fork
       pid_t pid;
       pid = fork();
       
-      if(pid > 0){
-         //parent
+      if(pid > 0){//parent
+
+         if(cd.isCD){
+            printf("cd detected");
+         }else if(isPWD){
+            printf("%s\n", getcwd(NULL, BUFFERSIZE));
+         }
+
          if(waitForChildProcess){
-            printf("parent waited\n");
             waitpid(pid, 0, 0);
          }
-      }else if(pid == 0){
-         //child
+      }else if(pid == 0){//child
          if(redirection.isRedirection){
             if(redirection.isOutput){
                if(redirection.appendOutput){
@@ -103,7 +116,7 @@ int main(int* argc, char** argv){
          perror("forking failed");
       }
          resetGlobals();
-         //Close redirection file
+         //Reset Redirection variables
          if(redirection.isRedirection){
             redirection.isRedirection = false;
             redirection.isOutput = false;
@@ -118,6 +131,9 @@ void resetGlobals(){
    token = NULL;
    myargc = 0;
    waitForChildProcess = true;
+   cd.isCD = false;
+   cd.path = "";
+   isPWD = false;
 }
 void tokenizeInput(struct Redirection * redir){
    char inputString[BUFFERSIZE];
@@ -153,6 +169,11 @@ void tokenizeInput(struct Redirection * redir){
          redir->fileName = strdup(strtok(0, delimiter));
       }else if(!strcmp(myargv[myargc],"&")){
          waitForChildProcess = false;
+      }else if(!strcmp(myargv[myargc],"cd")){
+         cd.isCD = true;
+         cd.path = strdup(strtok(0, delimiter));
+      }else if(!strcmp(myargv[myargc],"pwd")){
+         isPWD = true;
       }else{
          myargc++;
       }
