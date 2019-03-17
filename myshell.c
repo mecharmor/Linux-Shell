@@ -11,7 +11,6 @@
 ====== References, sources used for help in C =====
 /Clearing the buffer: Source: https://www.geeksforgeeks.org/clearing-the-input-buffer-in-cc/
 /Understanding strdup for deep copy: https://stackoverflow.com/questions/4090434/strtok-char-array-versus-char-pointer
-
 */
 #include <string.h>
 #include <unistd.h>
@@ -120,7 +119,9 @@ int main(int* argc, char** argv){
          //Time for piping
          if(isPiping){
             int pipe_fd[2]; // [0] read end, [1] write end
-            pipe(pipe_fd);
+            if(pipe(pipe_fd) < 0){
+               perror("Pipe failed to create \n");
+            }
 
             int id = fork();
             //Child, right side
@@ -237,8 +238,8 @@ int openFileWrite(char fileName[]){
    int fd;
    fd = open(fileName, O_WRONLY | O_CREAT, S_IRWXU);
     if(fd < 0){
-        perror("[openFileWriteTruncate]Destination file could not be opened/created\n");
-        return -42;
+        perror("[openFileWrite] Destination file could not be opened/created\n");
+        return -1;
     }
     return fd;
 }
@@ -246,8 +247,8 @@ int openFileWriteAppend(char fileName[]){
    int fd;
    fd = open(fileName, O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
     if(fd < 0){
-        perror("[openFileWriteAppend]Destination file could not be opened/created\n");
-        return -42;
+        perror("[openFileWriteAppend] Destination file could not be opened/created\n");
+        return -1;
     }
     return fd;
 }
@@ -255,8 +256,8 @@ int openFileRead(char fileName[]){
    int fd;
    fd = open(fileName, O_RDONLY);
    if(fd < 0){
-      perror("[openFileRead]Destination file could not be opened\n");
-      return -42;
+      perror("[openFileRead] Destination file could not be opened\n");
+      return -1;
    }
    return fd;
 }
