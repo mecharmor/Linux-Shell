@@ -46,6 +46,8 @@ int openFileWrite(char fileName[]);
 int openFileWriteAppend(char fileName[]);
 int openFileRead(char fileName[]);
 void resetGlobals();
+char * newPrompt();
+int getDirectories();
 
 //Globals
 char * myargv[BUFFERSIZE];
@@ -75,9 +77,10 @@ int main(int* argc, char** argv){
    myargc2 = 0;
    isPiping = false;
 
-   while(1){
 
-      printf(PROMPT);
+   while(1){
+      printf("%s" ,newPrompt());
+
       //Get Input and tokenize
       tokenizeInput(&redirection);
 
@@ -175,6 +178,40 @@ void resetGlobals(){
    memset(myargv2, 0, BUFFERSIZE);
    myargc2 = 0;
    isPiping = false;
+}
+char * newPrompt(){
+   char * pwd = getcwd(NULL, BUFFERSIZE);
+   char * _prompt = malloc(PROMPTSIZE + strlen(pwd)+1024);
+   char * _token;
+
+   if(getDirectories() > 2){
+      _token = strtok(pwd, "/");//ignore home
+      _token = strtok(0, "/");//ignore profile
+      _token = strtok(0, "/");//set next token
+   
+      strcat(_prompt,"myshell ~/");
+       while(_token != NULL){
+          strcat(_prompt, _token);
+          strcat(_prompt,"/");
+          _token = strtok(0, "/");
+       }
+   }else{
+      strcat(_prompt,"myshell ");
+      strcat(_prompt, pwd);
+   }
+   strcat(_prompt,">> ");
+   return strdup(_prompt);
+}
+int getDirectories(){
+   char * str = getcwd(NULL, BUFFERSIZE);
+   char * _token = strtok(str, "/");
+   int counter = 0;
+
+   while(_token != NULL){
+      _token = strtok(NULL, "/");
+      counter++;
+   }
+   return counter;
 }
 void tokenizeInput(struct Redirection * redir){
    char inputString[BUFFERSIZE];
